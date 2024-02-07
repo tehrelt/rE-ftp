@@ -23,40 +23,38 @@ export const Explorer = ({disabled, }: Props) => {
         setPath(await invoke('pwd'));
     }
 
+    const refreshDentries = async () => {
+        const r: string = await invoke('list');
+        console.log("response:", r);
+
+        const elements = r.split(';');
+        elements.pop();
+        console.log("elements:", elements);
+
+        setDentries(elements.map((entry) => {
+            const attrs: string[] = entry.trim().replace(/\s{2,}/g, ' ').split(' ');
+            console.log(attrs);
+
+            const dentry: DEntry = {
+                fileName: attrs.slice(8, attrs.length).join(' '),
+                modifyTime: `${attrs[5]} ${attrs[6]} ${attrs[7]}`,
+                size: attrs[4],
+                isDir: attrs[0].charAt(0) == 'd',
+            }
+            return dentry;
+        }).sort((a, b) => {
+            if(b.isDir) return 1;
+            else if(a.isDir) return -1;
+            else return 0;
+        }));
+    }
+
     useEffect(() => {
         refreshPath();
     }, []);
 
     useEffect(() => {
-        const getList = async () => {
-            const r: string = await invoke('list');
-            console.log("response:", r);
-
-            const elements = r.split(';');
-            elements.pop();
-            console.log("elements:", elements);
-
-            setDentries(elements.map((entry) => {
-                const attrs: string[] = entry.trim().replace(/\s{2,}/g, ' ').split(' ');
-                console.log(attrs);
-
-                const dentry: DEntry = {
-                    fileName: attrs[8],
-                    modifyTime: `${attrs[5]} ${attrs[6]} ${attrs[7]}`,
-                    size: attrs[4],
-                    isDir: attrs[0].charAt(0) == 'd',
-                }
-                return dentry;
-            }));
-        }
-
-        getList();
-
-        setDentries(dentries.sort((a, b) => {
-            if(b.isDir) return 1;
-            else if(a.isDir) return -1;
-            else return 0;
-        }));
+        refreshDentries();
     }, [path]);
 
     const enterDirectory = async (fileName: string) => {
@@ -64,22 +62,39 @@ export const Explorer = ({disabled, }: Props) => {
         refreshPath();
     }
 
+    const handleMkdir = async () => {
+        refreshDentries();
+        const count = dentries.filter(function(d) { return d.fileName.includes("New Folder") }).length
+
+        const dirName = count == 0 ? 'New Folder' : `New Folder (${count})`;
+
+        await invoke('mkdir', { dirName });
+        refreshDentries();
+    }
+
+    // @ts-ignore
     return (
-        <div className={`w-full h-screen p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto ${disabled ? "bg-slate-50" : "bg-slate-200"}`}>
-            <div className="mx-40">
-            <h2>
-                {path.split('*/').map((p: string) => (
-                    <span>{p}</span>
-                ))}
-            </h2>
-            <div className="block py-12">
-                {path !== '/' && (
-                    <DEntryDisplay dentry={{ fileName: "..", isDir: true }} doubleClickCallback={(name) => enterDirectory(name)}/>
-                )}
-                {dentries.map((dentry: DEntry) => (
-                    <DEntryDisplay dentry={dentry} doubleClickCallback={(name) => dentry.isDir ? enterDirectory(name) : console.log(name, "is file")}/>
-                ))}
-            </div>
+        <div className={` w-full h-screen p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto ${disabled ? "bg-slate-50" : "bg-slate-200"}`}>
+            <div className="relative mx-40">
+                <h2>
+                    {path.split('*/').map((p: string) => (
+                        <span>{p}</span>
+                    ))}
+                </h2>
+                <div className="block py-12">
+                    {path !== '/' && (
+                        <DEntryDisplay dentry={{ fileName: "..", isDir: true }} doubleClickCallback={(name) => enterDirectory(name)}/>
+                    )}
+                    {dentries.map((dentry: DEntry) => (
+                        <DEntryDisplay dentry={dentry} doubleClickCallback={(name) => dentry.isDir ? enterDirectory(name) : console.log(name, "is file")}/>
+                    ))}
+                </div>
+                <div id="button_mkdir" className="absolute top-0 right-2">
+                    <button className="bg-slate-300 text-gray-900 px-3 py-1 rounded rounded-b hover:bg-slate-400 transition-all ease-in-out"
+                            onClick={handleMkdir}>
+                        Make dir
+                    </button>
+                </div>
             </div>
         </div>
     );

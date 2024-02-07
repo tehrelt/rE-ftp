@@ -31,9 +31,6 @@ fn connect(
 #[tauri::command]
 fn ping(window: Window) -> bool {
     let r = mftp::is_connected();
-    // rustysocket::send_log_message(
-    //     &window, 
-    //     &create_log_message(&format!("ping: {}", r)));
     return r;
 }
 
@@ -55,7 +52,7 @@ fn list(window: Window) -> String {
             return "".to_string();
         },
         Some(x) => {
-            rustysocket::send_log_message(&window, &create_log_message(&format!("current directory: {}", path)));
+            rustysocket::send_log_message(&window, &create_log_message(&format!("Refreshed items for: {}", path)));
             return x;
         }
     }
@@ -80,10 +77,15 @@ fn cwd(window: Window, file_name: &str) {
     send_log_message(&window, &create_log_message(&format!("Moved to '{}'", file_name)));
 }
 
+#[tauri::command]
+fn mkdir(window: Window, dir_name: &str) {
+    let _ = mftp::mkdir(dir_name);
+    send_log_message(&window, &create_log_message(&format!("Created dir to '{}'", dir_name)));
+}
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![ping, connect, disconnect, list, pwd, cwd])
+        .invoke_handler(tauri::generate_handler![ping, connect, disconnect, list, pwd, cwd, mkdir])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

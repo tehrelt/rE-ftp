@@ -16,6 +16,8 @@ export const LogSocketConnection = (onMessage: OnLogCallback) => {
             (event: RustyPipe) => {
                 // console.log(`Function message -> `);
                 console.log(event.payload);
+
+                // @ts-ignore
                 onMessage(event.payload)
             }
         );

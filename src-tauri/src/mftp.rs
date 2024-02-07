@@ -90,3 +90,16 @@ pub fn is_connected() -> bool {
     drop(ftp);
     return connect_alive;
 }
+
+pub fn mkdir(file_name: &str) -> bool {
+    if is_connected() == false { 
+        return false; 
+    }
+
+    let mut ftp = FTP.lock().unwrap();
+
+    let _ = ftp.as_mut().unwrap().mkdir(file_name);
+
+    drop(ftp);
+    return true;
+}

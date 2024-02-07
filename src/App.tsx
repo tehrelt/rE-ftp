@@ -6,9 +6,8 @@ import {invoke} from "@tauri-apps/api";
 import {Options} from "./types/Options.ts";
 import {LogSocketConnection} from "./components/RustySocket.tsx";
 import {useEffect, useState} from "react";
-import {sample_dentries} from "./types/DEntry.ts";
 
-function App() {
+export default function App() {
 
     const [messages, setMessages] = useState<Message[]>([])
     const [connectionAlive, setConnectionAlive] = useState<boolean>(false)
@@ -27,12 +26,9 @@ function App() {
             setConnectionAlive(r);
         }
 
-        ping().then(r => console.log("ping"));
+        ping();
 
     }, [messages])
-
-
-    
 
     async function handleConnect(options: Options) {
         console.log("connect to ", options);
@@ -50,13 +46,9 @@ function App() {
             <div className="container mx-auto relative">
                 <h1 className="absolute font-extrabold text-3xl ">rE FTP</h1>
                 <ConnectionForm connectionAlive={connectionAlive} onConnect={handleConnect} onDisconnect={handleDisconnect} />
-                <Explorer disabled={!connectionAlive} dentries={sample_dentries} />
+                <Explorer disabled={!connectionAlive} />
                 <LogWindow messages={messages} clearCallback={() => setMessages([])}/>
             </div>
         </>
     );
 }
-
-
-
-export default App;

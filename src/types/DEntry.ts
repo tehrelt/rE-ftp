@@ -1,7 +1,7 @@
 export interface DEntry {
     fileName: string
-    size: string
-    modifyTime: string
+    size?: string
+    modifyTime?: string
     isDir: boolean
 }
 
