@@ -34,16 +34,16 @@ export const ConnectionForm = ({ connectionAlive, onConnect, onDisconnect }: Pro
                 <div></div>
 
                 <InputBox
-                    label="Host" id="host" placeholder="127.0.0.1"
+                    label="Host" id="host" placeholder="127.0.0.1" disabled={connectionAlive}
                     value={host} callback={(val) => setHost(val.toString())}/>
 
-                <InputBox label="Username" id="user"
+                <InputBox label="Username" id="user" disabled={connectionAlive}
                           value={username} callback={(val) => setUsername(val.toString())} />
 
-                <InputBox label="Password" id="password" type="password"
+                <InputBox label="Password" id="password" type="password" disabled={connectionAlive}
                           value={password} callback={(val) => setPassword(val.toString())}/>
 
-                <InputBox label="Port" id="port" type="number" max={65535}
+                <InputBox label="Port" id="port" type="number" max={65535} disabled={connectionAlive}
                           value={port} callback={(val) => setPort(Number(val))}/>
 
                 <div className="w-full flex justify-center items-center">

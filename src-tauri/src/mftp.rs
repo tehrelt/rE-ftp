@@ -37,6 +37,39 @@ pub fn disconnect() {
     drop(ftp);
 }
 
+pub fn ls() -> Option<String> {
+    if is_connected() == false { 
+        return None; 
+    }
+
+    let mut ftp = FTP.lock().unwrap();
+
+    let list = ftp.as_mut().unwrap().list(None).unwrap();
+
+    let mut owned_string = "".to_owned();
+
+    for item in list {
+        println!("{}", item);
+        owned_string.push_str(&format!("{};", item));
+    }
+
+    drop(ftp);
+    return Some(owned_string);  
+}
+
+pub fn pwd() -> Option<String> {
+    if is_connected() == false { 
+        return None; 
+    }
+
+    let mut ftp = FTP.lock().unwrap();
+
+    let path = ftp.as_mut().unwrap().pwd().unwrap();
+
+    drop(ftp);
+    return Some(path);
+}
+
 pub fn is_connected() -> bool {
     let mut ftp = FTP.lock().unwrap();
     let connect_alive = ftp.is_some();

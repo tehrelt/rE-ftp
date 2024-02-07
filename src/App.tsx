@@ -6,6 +6,7 @@ import {invoke} from "@tauri-apps/api";
 import {Options} from "./types/Options.ts";
 import {LogSocketConnection} from "./components/RustySocket.tsx";
 import {useEffect, useState} from "react";
+import {sample_dentries} from "./types/DEntry.ts";
 
 function App() {
 
@@ -13,6 +14,7 @@ function App() {
     const [connectionAlive, setConnectionAlive] = useState<boolean>(false)
 
     const handleLogSocketMessage = (message: Message) => {
+        message.datetime = new Date(message.datetime);
         // This is where you do the actions - im just writing the message to a state variable
         setMessages(old => [...old, message]);
     };
@@ -28,6 +30,9 @@ function App() {
         ping().then(r => console.log("ping"));
 
     }, [messages])
+
+
+    
 
     async function handleConnect(options: Options) {
         console.log("connect to ", options);
@@ -45,8 +50,8 @@ function App() {
             <div className="container mx-auto relative">
                 <h1 className="absolute font-extrabold text-3xl ">rE FTP</h1>
                 <ConnectionForm connectionAlive={connectionAlive} onConnect={handleConnect} onDisconnect={handleDisconnect} />
-                <Explorer />
-                <LogWindow messages={messages} />
+                <Explorer disabled={!connectionAlive} dentries={sample_dentries} />
+                <LogWindow messages={messages} clearCallback={() => setMessages([])}/>
             </div>
         </>
     );
