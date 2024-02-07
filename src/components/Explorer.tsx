@@ -2,6 +2,8 @@ import {DEntry} from "../types/DEntry.ts";
 import {DEntryDisplay} from "./DEntryDisplay.tsx";
 import {useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api";
+import {save} from "@tauri-apps/api/dialog";
+import {BaseDirectory, writeBinaryFile} from "@tauri-apps/api/fs";
 
 type Props = {
     disabled?: boolean | true
@@ -72,6 +74,32 @@ export const Explorer = ({disabled, }: Props) => {
         refreshDentries();
     }
 
+    const downloadFile = async (fileName: string) => {
+       let r = await invoke('get', {fileName});
+        // @ts-ignore
+        // var blob = new Blob([new Uint8Array(r)], {type: "application/binary"});
+        // var link = document.createElement("a");
+        // link.href = window.URL.createObjectURL(blob);
+        // link.download = fileName;
+        // link.click();
+        // window.URL.revokeObjectURL(link.href);
+
+        const filePath = await save({
+            defaultPath: BaseDirectory.Download + "/" + fileName,
+            filters: [{
+                name: "Files",
+                extensions: ['*']
+            }]
+        });
+
+        if (filePath != null) {
+            console.log("filePath:", filePath);
+            // @ts-ignore
+            await writeBinaryFile(filePath, new Uint8Array((r)));
+        }
+
+    }
+
     // @ts-ignore
     return (
         <div className={` w-full h-screen p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto ${disabled ? "bg-slate-50" : "bg-slate-200"}`}>
@@ -86,7 +114,7 @@ export const Explorer = ({disabled, }: Props) => {
                         <DEntryDisplay dentry={{ fileName: "..", isDir: true }} doubleClickCallback={(name) => enterDirectory(name)}/>
                     )}
                     {dentries.map((dentry: DEntry) => (
-                        <DEntryDisplay dentry={dentry} doubleClickCallback={(name) => dentry.isDir ? enterDirectory(name) : console.log(name, "is file")}/>
+                        <DEntryDisplay dentry={dentry} doubleClickCallback={(name) => dentry.isDir ? enterDirectory(name) : downloadFile(name)}/>
                     ))}
                 </div>
                 <div id="button_mkdir" className="absolute top-0 right-2">

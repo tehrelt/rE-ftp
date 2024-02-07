@@ -83,9 +83,25 @@ fn mkdir(window: Window, dir_name: &str) {
     send_log_message(&window, &create_log_message(&format!("Created dir to '{}'", dir_name)));
 }
 
+#[tauri::command]
+fn get(window: Window, file_name: &str) -> Option<Vec<u8>>{
+    let bytes = mftp::get(file_name);
+
+    match bytes {
+        Some(x) => {
+            send_log_message(&window, &create_log_message(&format!("File '{}' starts downloading", file_name)));
+            return Some(x);
+        },
+        None => { 
+            send_log_message(&window, &create_log_message(&format!("Something went wrong with downloading '{}'", file_name))); 
+            return None;
+        }
+    }    
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![ping, connect, disconnect, list, pwd, cwd, mkdir])
+        .invoke_handler(tauri::generate_handler![ping, connect, disconnect, list, pwd, cwd, mkdir, get])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

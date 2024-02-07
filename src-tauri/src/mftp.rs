@@ -103,3 +103,16 @@ pub fn mkdir(file_name: &str) -> bool {
     drop(ftp);
     return true;
 }
+
+pub fn get(file_name: &str) -> Option<Vec<u8>> {
+    if is_connected() == false { 
+        return None; 
+    }
+
+    let mut ftp = FTP.lock().unwrap();
+
+    let bytes = ftp.as_mut().unwrap().simple_retr(file_name).unwrap().into_inner();
+
+    drop(ftp);
+    return Some(bytes);
+}
