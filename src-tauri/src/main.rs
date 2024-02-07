@@ -8,8 +8,8 @@ mod rustysocket;
 mod mftp;
 
 use mftp::FTP;
-use rustysocket::create_log_message;
-use tauri::Window;
+use rustysocket::{create_log_message, send_log_message};
+use tauri::{api::file, Window};
 use std::str;
 
 #[tauri::command]
@@ -74,9 +74,16 @@ fn pwd(window: Window) -> String {
     }
 }
 
+#[tauri::command]
+fn cwd(window: Window, file_name: &str) {
+    let _ = mftp::cwd(file_name);
+    send_log_message(&window, &create_log_message(&format!("Moved to '{}'", file_name)));
+}
+
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![ping, connect, disconnect, list, pwd])
+        .invoke_handler(tauri::generate_handler![ping, connect, disconnect, list, pwd, cwd])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

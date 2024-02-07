@@ -23,6 +23,7 @@ pub fn connect(host: &str, user: &str, pass: &str, port: i32) -> bool {
     return true;
 }
 
+
 pub fn disconnect() {
     let mut ftp = FTP.lock().unwrap();
     match &mut *ftp {
@@ -69,6 +70,19 @@ pub fn pwd() -> Option<String> {
     drop(ftp);
     return Some(path);
 }
+
+pub fn cwd(file_name: &str) {
+    if is_connected() == false { 
+        return; 
+    }
+
+    let mut ftp = FTP.lock().unwrap();
+
+    let _ = ftp.as_mut().unwrap().cwd(file_name);
+
+    drop(ftp);
+}
+
 
 pub fn is_connected() -> bool {
     let mut ftp = FTP.lock().unwrap();

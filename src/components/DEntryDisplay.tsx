@@ -2,11 +2,13 @@ import {DEntry} from "../types/DEntry.ts";
 
 type Props = {
     dentry: DEntry
+
+    doubleClickCallback: (name: string) => void;
 };
-export const DEntryDisplay = ({ dentry }: Props) => {
+export const DEntryDisplay = ({ dentry, doubleClickCallback }: Props) => {
     return (
-        <div className="grid grid-cols-6 items-center border-b-4 border-slate-300 hover:bg-slate-300 px-10 py-2 mx-40 transition-all ease-in-out select-none "
-             onDoubleClick={() => console.log(`double clicked on ${dentry.fileName}`)}>
+        <div className="grid grid-cols-6 items-center border-b-4 border-slate-300 hover:bg-slate-300 px-10 py-2 transition-all ease-in-out select-none "
+             onDoubleClick={() => doubleClickCallback(dentry.fileName)}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-8 h-8 fill-gray-600 mx-auto">
                 {dentry.isDir ? (
                     <path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" />

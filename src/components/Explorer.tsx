@@ -19,6 +19,13 @@ export const Explorer = ({disabled, }: Props) => {
     const [path, setPath] = useState<string>("/");
     const [dentries, setDentries] = useState<DEntry[]>([]);
 
+    const refreshPath = async () => {
+        setPath(await invoke('pwd'));
+    }
+
+    useEffect(() => {
+        refreshPath();
+    }, []);
 
     useEffect(() => {
         const getList = async () => {
@@ -52,13 +59,27 @@ export const Explorer = ({disabled, }: Props) => {
         }));
     }, [path]);
 
+    const enterDirectory = async (fileName: string) => {
+        await invoke('cwd', { fileName });
+        refreshPath();
+    }
 
     return (
         <div className={`w-full h-screen p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto ${disabled ? "bg-slate-50" : "bg-slate-200"}`}>
-            <div className="block py-12">
-                {dentries.map((dentry: DEntry) => (
-                    <DEntryDisplay dentry={dentry}/>
+            <div className="mx-40">
+            <h2>
+                {path.split('*/').map((p: string) => (
+                    <span>{p}</span>
                 ))}
+            </h2>
+            <div className="block py-12">
+                {path !== '/' && (
+                    <DEntryDisplay dentry={{ fileName: "..", isDir: true }} doubleClickCallback={(name) => enterDirectory(name)}/>
+                )}
+                {dentries.map((dentry: DEntry) => (
+                    <DEntryDisplay dentry={dentry} doubleClickCallback={(name) => dentry.isDir ? enterDirectory(name) : console.log(name, "is file")}/>
+                ))}
+            </div>
             </div>
         </div>
     );
