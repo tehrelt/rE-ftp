@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{io::Cursor, sync::Mutex};
 
 use ftp::FtpStream;
 
@@ -50,7 +50,6 @@ pub fn ls() -> Option<String> {
     let mut owned_string = "".to_owned();
 
     for item in list {
-        println!("{}", item);
         owned_string.push_str(&format!("{};", item));
     }
 
@@ -115,4 +114,17 @@ pub fn get(file_name: &str) -> Option<Vec<u8>> {
 
     drop(ftp);
     return Some(bytes);
+}
+
+pub fn put(file_name: &str, bytes: Vec<u8>) {
+    if is_connected() == false { 
+        return; 
+    }
+
+    dbg!(file_name);
+    let mut ftp = FTP.lock().unwrap();
+    let mut reader = Cursor::new(bytes);
+    let _ = ftp.as_mut().unwrap().put(file_name, &mut reader);
+
+    drop(ftp)
 }

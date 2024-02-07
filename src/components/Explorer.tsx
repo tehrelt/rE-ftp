@@ -2,8 +2,8 @@ import {DEntry} from "../types/DEntry.ts";
 import {DEntryDisplay} from "./DEntryDisplay.tsx";
 import {useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api";
-import {save} from "@tauri-apps/api/dialog";
-import {BaseDirectory, writeBinaryFile} from "@tauri-apps/api/fs";
+import {open, save} from "@tauri-apps/api/dialog";
+import {BaseDirectory, readBinaryFile, writeBinaryFile} from "@tauri-apps/api/fs";
 
 type Props = {
     disabled?: boolean | true
@@ -27,20 +27,29 @@ export const Explorer = ({disabled, }: Props) => {
 
     const refreshDentries = async () => {
         const r: string = await invoke('list');
-        console.log("response:", r);
 
         const elements = r.split(';');
         elements.pop();
-        console.log("elements:", elements);
 
         setDentries(elements.map((entry) => {
             const attrs: string[] = entry.trim().replace(/\s{2,}/g, ' ').split(' ');
-            console.log(attrs);
+
+            let size = Number(attrs[4]);
+            let unit = "b";
+            if(size > 1 << 20) {
+                size /= 1<<20;
+                unit = "mb"
+            } else if (size > 1 << 10) {
+                size /= 1<<10;
+                unit = "kb"
+            }
+
+            size = Math.ceil(size);
 
             const dentry: DEntry = {
                 fileName: attrs.slice(8, attrs.length).join(' '),
                 modifyTime: `${attrs[5]} ${attrs[6]} ${attrs[7]}`,
-                size: attrs[4],
+                size: `${size} ${unit}`,
                 isDir: attrs[0].charAt(0) == 'd',
             }
             return dentry;
@@ -64,7 +73,7 @@ export const Explorer = ({disabled, }: Props) => {
         refreshPath();
     }
 
-    const handleMkdir = async () => {
+    const mkdir = async () => {
         refreshDentries();
         const count = dentries.filter(function(d) { return d.fileName.includes("New Folder") }).length
 
@@ -75,15 +84,6 @@ export const Explorer = ({disabled, }: Props) => {
     }
 
     const downloadFile = async (fileName: string) => {
-       let r = await invoke('get', {fileName});
-        // @ts-ignore
-        // var blob = new Blob([new Uint8Array(r)], {type: "application/binary"});
-        // var link = document.createElement("a");
-        // link.href = window.URL.createObjectURL(blob);
-        // link.download = fileName;
-        // link.click();
-        // window.URL.revokeObjectURL(link.href);
-
         const filePath = await save({
             defaultPath: BaseDirectory.Download + "/" + fileName,
             filters: [{
@@ -92,12 +92,31 @@ export const Explorer = ({disabled, }: Props) => {
             }]
         });
 
+        let r = await invoke('get', {fileName});
+
         if (filePath != null) {
-            console.log("filePath:", filePath);
             // @ts-ignore
             await writeBinaryFile(filePath, new Uint8Array((r)));
         }
 
+    }
+
+    const uploadFile = async () => {
+        const filePath = await open({
+            filters: [{
+                name: "Files",
+                extensions: ['*']
+            }]
+        });
+
+        console.log("uploadFile() filePath:", filePath);
+
+        // const bytes = await readBinaryFile(filePath);
+        // console.log("uploadFile() bytes:", bytes);
+
+        await invoke('put', { path: filePath })
+
+        refreshDentries();
     }
 
     // @ts-ignore
@@ -106,7 +125,7 @@ export const Explorer = ({disabled, }: Props) => {
             <div className="relative mx-40">
                 <h2>
                     {path.split('*/').map((p: string) => (
-                        <span>{p}</span>
+                        <span key={"p"}>{p}</span>
                     ))}
                 </h2>
                 <div className="block py-12">
@@ -114,13 +133,17 @@ export const Explorer = ({disabled, }: Props) => {
                         <DEntryDisplay dentry={{ fileName: "..", isDir: true }} doubleClickCallback={(name) => enterDirectory(name)}/>
                     )}
                     {dentries.map((dentry: DEntry) => (
-                        <DEntryDisplay dentry={dentry} doubleClickCallback={(name) => dentry.isDir ? enterDirectory(name) : downloadFile(name)}/>
+                        <DEntryDisplay key={dentry.fileName} dentry={dentry} doubleClickCallback={(name) => dentry.isDir ? enterDirectory(name) : downloadFile(name)}/>
                     ))}
                 </div>
                 <div id="button_mkdir" className="absolute top-0 right-2">
                     <button className="bg-slate-300 text-gray-900 px-3 py-1 rounded rounded-b hover:bg-slate-400 transition-all ease-in-out"
-                            onClick={handleMkdir}>
+                            onClick={mkdir}>
                         Make dir
+                    </button>
+                    <button className="bg-slate-300 text-gray-900 px-3 py-1 rounded rounded-b hover:bg-slate-400 transition-all ease-in-out ml-4"
+                            onClick={uploadFile}>
+                        Upload file
                     </button>
                 </div>
             </div>

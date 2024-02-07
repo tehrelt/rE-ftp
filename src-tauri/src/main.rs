@@ -9,8 +9,8 @@ mod mftp;
 
 use mftp::FTP;
 use rustysocket::{create_log_message, send_log_message};
-use tauri::{api::file, Window};
-use std::str;
+use tauri::Window;
+use std::{fs, str};
 
 #[tauri::command]
 fn connect(
@@ -99,9 +99,18 @@ fn get(window: Window, file_name: &str) -> Option<Vec<u8>>{
     }    
 }
 
+
+#[tauri::command]
+fn put(window: Window, path: &str) {
+    send_log_message(&window, &create_log_message(&format!("Uploading '{}'", path))); 
+    let bytes = fs::read(path).unwrap();
+    let (_, file_name) = path.rsplit_once('\\').unwrap();
+    mftp::put(file_name, bytes)
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![ping, connect, disconnect, list, pwd, cwd, mkdir, get])
+        .invoke_handler(tauri::generate_handler![ping, connect, disconnect, list, pwd, cwd, mkdir, get, put])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

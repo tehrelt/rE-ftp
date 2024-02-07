@@ -14,9 +14,6 @@ export const LogSocketConnection = (onMessage: OnLogCallback) => {
         const rustyPipe = appWindow.listen(
             "log-socket-message",
             (event: RustyPipe) => {
-                // console.log(`Function message -> `);
-                console.log(event.payload);
-
                 // @ts-ignore
                 onMessage(event.payload)
             }

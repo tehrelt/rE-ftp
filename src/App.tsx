@@ -33,8 +33,9 @@ export default function App() {
     async function handleConnect(options: Options) {
         console.log("connect to ", options);
         // @ts-ignore
-        let response = await invoke("connect", options);
-        console.log(response);
+        await invoke("connect", options)
+            .then(() => console.log("connected"))
+            .catch(e => console.error(e));
     }
 
     async function handleDisconnect() {
