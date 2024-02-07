@@ -5,10 +5,12 @@
 extern crate ftp;
 
 mod rustysocket;
+mod mutex;
 
-use tauri::{window, Window};
+use mutex::FTP;
+use rustysocket::create_log_message;
+use tauri::Window;
 use std::str;
-use ftp::FtpStream;
 
 #[tauri::command]
 fn connect(
@@ -18,56 +20,34 @@ fn connect(
     pass: &str, 
     port: i32) {
 
-    rustysocket::send_log_message(&window, &rustysocket::create_log_message(&format!("connecting to {}:{}", host, port)));
-    let mut ftp_stream = FtpStream::connect(format!("{}:{}", host, port)).unwrap();
-    rustysocket::send_log_message(&window, &rustysocket::create_log_message(&format!("connected to {}:{}", host, port)));
+    rustysocket::send_log_message(&window, &create_log_message(&format!("connecting to {}:{}", host, port)));
+    let fl = mutex::connect(host, user, pass, port);
+    rustysocket::send_log_message(
+        &window, 
+        &create_log_message(if fl { "connection successfully" } 
+                            else { "connection failed" }));
+}
 
+#[tauri::command]
+fn ping(window: Window) -> bool {
+    let r = mutex::is_connected();
+    // rustysocket::send_log_message(
+    //     &window, 
+    //     &create_log_message(&format!("ping: {}", r)));
+    return r;
+}
 
-    let _ = ftp_stream.login(user, pass).unwrap();
-    rustysocket::send_log_message(&window, &rustysocket::create_log_message(&format!("logged in as {}", user)));
-
-    
-
-    let pwd = ftp_stream.pwd().unwrap();
-
-    // Get the current directory that the client will be reading from and writing to.
-    let msg = format!("Current directory: {}", pwd);
-    println!("{}", msg);
-
-    rustysocket::send_log_message(&window, &rustysocket::create_log_message(&msg));
-
-    let list = ftp_stream.list(None).unwrap();
-
-    for item in list {
-        println!("{}", item);
-    }
-
-    // let _ = ftp_stream.cwd("new").unwrap();
-    // let pwd = ftp_stream.pwd().unwrap();
-    // println!("Current directory: {}", pwd);
-    // let list = ftp_stream.list(None).unwrap();
-    // for item in list {
-    //     println!("{}", item);
-    // }
-    // // Change into a new directory, relative to the one we are currently in.
-    // let _ = ftp_stream.cwd("test_data").unwrap();
-
-    // Retrieve (GET) a file from the FTP server in the current working directory.
-    // let remote_file = ftp_stream.simple_retr("test.txt").unwrap();
-    // println!("Read file with contents\n{}\n", str::from_utf8(&remote_file.into_inner()).unwrap());
-
-    // // Store (PUT) a file from the client to the current working directory of the server.
-    // let mut reader = Cursor::new("Hello from the Rust \"ftp\" crate!".as_bytes());
-    // let _ = ftp_stream.put("greeting.txt", &mut reader);
-    // println!("Successfully wrote greeting.txt");
-
-    // Terminate the connection to the server.
-    let _ = ftp_stream.quit();
+#[tauri::command]
+fn disconnect(window: Window) {
+    mutex::disconnect();
+    rustysocket::send_log_message(
+        &window, 
+        &create_log_message("disconnected"));
 }
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![connect])
+        .invoke_handler(tauri::generate_handler![ping, connect, disconnect])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

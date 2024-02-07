@@ -18,11 +18,6 @@ impl LogMessage {
 pub fn create_log_message(msg: &str) -> LogMessage {
     LogMessage::new(msg.to_string(), Local::now())
 }
-
-pub fn send_rustysocket_message(window: &Window, message: &str) {
-    window.emit("rustysocket-message", message).unwrap();
-}
-
 pub fn send_log_message(window: &Window, log: &LogMessage) {
     window.emit("log-socket-message", log).unwrap()
 }

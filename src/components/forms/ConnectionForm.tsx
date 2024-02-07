@@ -3,9 +3,11 @@ import {useState} from "react";
 import {Options} from "../../types/Options.ts";
 
 type Props = {
-    onSubmit: (options: Options) => void
+    connectionAlive: boolean
+    onConnect: (options: Options) => void
+    onDisconnect: () => void
 };
-export const ConnectionForm = ({ onSubmit }: Props) => {
+export const ConnectionForm = ({ connectionAlive, onConnect, onDisconnect }: Props) => {
 
     const [host, setHost] = useState<string>("")
     const [username, setUsername] = useState<string>("")
@@ -14,12 +16,16 @@ export const ConnectionForm = ({ onSubmit }: Props) => {
 
     const handleSubmit = (e: any) => {
         e.preventDefault();
-        onSubmit({
-            host,
-            user: username,
-            pass: password,
-            port
-        });
+        if (connectionAlive) {
+            onDisconnect()
+        } else {
+            onConnect({
+                host,
+                user: username,
+                pass: password,
+                port
+            });
+        }
     }
 
     return (
@@ -41,7 +47,11 @@ export const ConnectionForm = ({ onSubmit }: Props) => {
                           value={port} callback={(val) => setPort(Number(val))}/>
 
                 <div className="w-full flex justify-center items-center">
-                    <button type="submit" className="bg-sky-600 px-4 py-2 text-white rounded-xl">Connect</button>
+                    {connectionAlive == false ? (
+                        <button type="submit" className="bg-sky-600 px-4 py-2 text-white rounded-xl">Connect</button>
+                    ) : (
+                        <button type="submit" className="bg-orange-500 px-4 py-2 text-white rounded-xl">Disconnect</button>
+                    )}
                 </div>
             </div>
         </form>
