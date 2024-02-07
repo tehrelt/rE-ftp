@@ -10,7 +10,7 @@ export const LogWindow = ({messages}: Props) => {
                     {messages.map((m) => (
                         <>
                             <div className="col-span-3 text-slate-600 font-bold">
-                                {m.datetime.toISOString()}
+                                {m.datetime}
                             </div>
                             <div className="col-span-7">
                                 {m.message}
