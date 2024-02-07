@@ -3,7 +3,7 @@ import {DEntryDisplay} from "./DEntryDisplay.tsx";
 import {useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api";
 import {open, save} from "@tauri-apps/api/dialog";
-import {BaseDirectory, readBinaryFile, writeBinaryFile} from "@tauri-apps/api/fs";
+import {BaseDirectory, writeBinaryFile} from "@tauri-apps/api/fs";
 
 type Props = {
     disabled?: boolean | true
@@ -22,16 +22,15 @@ export const Explorer = ({disabled, }: Props) => {
     const [dentries, setDentries] = useState<DEntry[]>([]);
 
     const refreshPath = async () => {
-        setPath(await invoke('pwd'));
+        // @ts-ignore
+        invoke('pwd').then(p => setPath(p)).catch(e => console.log(e));
     }
 
     const refreshDentries = async () => {
-        const r: string = await invoke('list');
+        const entries: string[] = await invoke('list');
+        console.log(entries);
 
-        const elements = r.split(';');
-        elements.pop();
-
-        setDentries(elements.map((entry) => {
+        setDentries(entries.map((entry) => {
             const attrs: string[] = entry.trim().replace(/\s{2,}/g, ' ').split(' ');
 
             let size = Number(attrs[4]);
@@ -46,13 +45,12 @@ export const Explorer = ({disabled, }: Props) => {
 
             size = Math.ceil(size);
 
-            const dentry: DEntry = {
+            return {
                 fileName: attrs.slice(8, attrs.length).join(' '),
                 modifyTime: `${attrs[5]} ${attrs[6]} ${attrs[7]}`,
                 size: `${size} ${unit}`,
                 isDir: attrs[0].charAt(0) == 'd',
             }
-            return dentry;
         }).sort((a, b) => {
             if(b.isDir) return 1;
             else if(a.isDir) return -1;
@@ -121,7 +119,7 @@ export const Explorer = ({disabled, }: Props) => {
 
     // @ts-ignore
     return (
-        <div className={` w-full h-screen p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto ${disabled ? "bg-slate-50" : "bg-slate-200"}`}>
+        <div className={` w-full max-h-96 p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto ${disabled ? "bg-slate-50" : "bg-slate-200"}`}>
             <div className="relative mx-40">
                 <h2>
                     {path.split('*/').map((p: string) => (

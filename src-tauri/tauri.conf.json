@@ -6,8 +6,8 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": ".",
-    "version": "0.1.0"
+    "productName": "rE FTP",
+    "version": "0.7.3"
   },
   "tauri": {
     "allowlist": {
@@ -22,10 +22,22 @@
       "fs": {
         "readFile": true,
         "writeFile": true
+      },
+      "window": {
+        "all": false,
+        "close": true,
+        "hide": true,
+        "show": true,
+        "maximize": true,
+        "minimize": true,
+        "unmaximize": true,
+        "unminimize": true,
+        "startDragging": true
       }
     },
     "windows": [
       {
+        "decorations": false,
         "fullscreen": false,
         "resizable": true,
         "title": "re-ftp",

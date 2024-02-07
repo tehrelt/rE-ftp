@@ -5,7 +5,7 @@ import {Message} from "./types/Message.ts";
 import {invoke} from "@tauri-apps/api";
 import {Options} from "./types/Options.ts";
 import {LogSocketConnection} from "./components/RustySocket.tsx";
-import {useEffect, useState} from "react";
+import {useState} from "react";
 
 export default function App() {
 
@@ -20,26 +20,24 @@ export default function App() {
 
     LogSocketConnection(handleLogSocketMessage);
 
-    useEffect(() => {
-        const ping = async () => {
-            const r: boolean = await invoke("ping")
-            setConnectionAlive(r);
-        }
-
-        ping();
-
-    }, [messages])
+    // useEffect(() => {
+    //     const ping = async () => {
+    //         invoke("ping").then(r => setConnectionAlive(r)).catch(e => console.error("ping", e));
+    //     }
+    //
+    //     ping();
+    // }, [messages])
 
     async function handleConnect(options: Options) {
         console.log("connect to ", options);
         // @ts-ignore
         await invoke("connect", options)
-            .then(() => console.log("connected"))
+            .then(() => setConnectionAlive(true))
             .catch(e => console.error(e));
     }
 
     async function handleDisconnect() {
-        await invoke("disconnect");
+        invoke("disconnect").then(() => setConnectionAlive(false));
     }
 
     return (

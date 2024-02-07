@@ -1,130 +1,135 @@
 use std::{io::Cursor, sync::Mutex};
 
-use ftp::FtpStream;
+use ftp::{FtpError, FtpStream};
 
-use crate::rustysocket;
 extern crate ftp;
 
 pub static FTP: Mutex<Option<FtpStream>> = Mutex::new(None);
 
-pub fn connect(host: &str, user: &str, pass: &str, port: i32) -> bool {
-    let mut ftp = FTP.lock().unwrap();
-    match &mut *ftp {
-        Some(x) => { 
-            drop(x);
-            return false;
-        },
-        None => {
-            *ftp = Some(FtpStream::connect(format!("{}:{}", host, port)).unwrap());
-            ftp.as_mut().unwrap().login(user, pass).unwrap()
-        }
+pub fn connect(host: &str, user: &str, password: &str, port: i32) -> Result<(), FtpError> {
+
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+
+    if ftp_mutex.is_some() {
+        let _ = check_connection().expect_err("Connection alive");
     }
-    drop(ftp);
-    return true;
+
+    let mut ftp = FtpStream::connect(format!("{}:{}", host, port))?;
+    
+    let _ = ftp.login(user, password)?;
+    
+    *ftp_mutex = Some(ftp);
+    drop(ftp_mutex);
+
+    Ok(())
+}
+pub fn disconnect() -> Result<(), FtpError> {
+    check_connection()?;
+
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+    let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
+
+    let _ = ftp.quit().expect("Unexpected error while executing disconnect");
+
+    *ftp_mutex = None;
+
+    drop(ftp_mutex);
+
+    Ok(())
 }
 
+pub fn check_connection() -> Result<(), FtpError> {
 
-pub fn disconnect() {
-    let mut ftp = FTP.lock().unwrap();
-    match &mut *ftp {
-        Some(x) => { 
-            x.quit();
-            *ftp = None
-        },
-        None => {
-            
-        }
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+    let ftp = ftp_mutex.as_mut();
+
+    if ftp.is_none() {
+        return Err(FtpError::InvalidResponse(format!("FTP stream not initialized")))
     }
-    drop(ftp);
+
+    // Attempt to send a NOOP command to the FTP server
+    ftp.unwrap().noop()?;
+    println!("Connection alive to the FTP server");
+
+    drop(ftp_mutex);
+    
+    Ok(())
 }
 
-pub fn ls() -> Option<String> {
-    if is_connected() == false { 
-        return None; 
-    }
+pub fn ls() -> Result<Vec<String>, FtpError> {
+   
+    check_connection()?;
 
-    let mut ftp = FTP.lock().unwrap();
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+    let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-    let list = ftp.as_mut().unwrap().list(None).unwrap();
+    let list = ftp.list(None).expect("Unexpected error while executing ls");
 
-    let mut owned_string = "".to_owned();
-
-    for item in list {
-        owned_string.push_str(&format!("{};", item));
-    }
-
-    drop(ftp);
-    return Some(owned_string);  
+    drop(ftp_mutex);
+    
+    Ok(list)
 }
+pub fn pwd() -> Result<String, FtpError> {
 
-pub fn pwd() -> Option<String> {
-    if is_connected() == false { 
-        return None; 
-    }
+    check_connection()?;
 
-    let mut ftp = FTP.lock().unwrap();
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+    let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-    let path = ftp.as_mut().unwrap().pwd().unwrap();
+    let path = ftp.pwd().expect("Unexpected error while executing pwd");
 
-    drop(ftp);
-    return Some(path);
+    drop(ftp_mutex);
+
+    return Ok(path);
 }
+pub fn cwd(file_name: &str) -> Result<(), FtpError> {
+    
+    check_connection()?;
 
-pub fn cwd(file_name: &str) {
-    if is_connected() == false { 
-        return; 
-    }
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+    let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-    let mut ftp = FTP.lock().unwrap();
+    let _ = ftp.cwd(file_name).expect("Unexpected error while executing cwd");
 
-    let _ = ftp.as_mut().unwrap().cwd(file_name);
+    drop(ftp_mutex);
 
-    drop(ftp);
+    Ok(())
 }
+pub fn mkdir(file_name: &str) -> Result<(), FtpError> {
+    check_connection()?;
 
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+    let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-pub fn is_connected() -> bool {
-    let mut ftp = FTP.lock().unwrap();
-    let connect_alive = ftp.is_some();
-    drop(ftp);
-    return connect_alive;
+    let _ = ftp.mkdir(file_name);
+
+    drop(ftp_mutex);
+
+    Ok(())
 }
+pub fn get(file_name: &str) -> Result<Vec<u8>, FtpError> {
+    check_connection()?;
 
-pub fn mkdir(file_name: &str) -> bool {
-    if is_connected() == false { 
-        return false; 
-    }
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+    let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-    let mut ftp = FTP.lock().unwrap();
+    let bytes = ftp.simple_retr(file_name).unwrap().into_inner();
 
-    let _ = ftp.as_mut().unwrap().mkdir(file_name);
+    drop(ftp_mutex);
 
-    drop(ftp);
-    return true;
+    Ok(bytes)
 }
+pub fn put(file_name: &str, bytes: Vec<u8>) -> Result<(), FtpError>{
 
-pub fn get(file_name: &str) -> Option<Vec<u8>> {
-    if is_connected() == false { 
-        return None; 
-    }
+    check_connection()?;
 
-    let mut ftp = FTP.lock().unwrap();
+    let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
+    let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-    let bytes = ftp.as_mut().unwrap().simple_retr(file_name).unwrap().into_inner();
-
-    drop(ftp);
-    return Some(bytes);
-}
-
-pub fn put(file_name: &str, bytes: Vec<u8>) {
-    if is_connected() == false { 
-        return; 
-    }
-
-    dbg!(file_name);
-    let mut ftp = FTP.lock().unwrap();
     let mut reader = Cursor::new(bytes);
-    let _ = ftp.as_mut().unwrap().put(file_name, &mut reader);
+    let _ = ftp.put(file_name, &mut reader);
 
-    drop(ftp)
+    drop(ftp_mutex);
+
+    Ok(())
 }
