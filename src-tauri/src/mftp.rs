@@ -63,11 +63,15 @@ pub fn ls() -> Result<Vec<String>, FtpError> {
     let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
     let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-    let list = ftp.list(None).expect("Unexpected error while executing ls");
+    let list = ftp.list(None);
+    if list.is_err() {
+        drop(ftp_mutex);
+        return list;
+    }
 
     drop(ftp_mutex);
     
-    Ok(list)
+    Ok(list.unwrap())
 }
 pub fn pwd() -> Result<String, FtpError> {
 
