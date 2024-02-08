@@ -7,8 +7,10 @@ import {BaseDirectory, writeBinaryFile} from "@tauri-apps/api/fs";
 
 type Props = {
     disabled?: boolean | true
+
+    onError: () => void;
 };
-export const Explorer = ({disabled, }: Props) => {
+export const Explorer = ({disabled, onError }: Props) => {
 
     if(disabled) {
         return (
@@ -23,7 +25,7 @@ export const Explorer = ({disabled, }: Props) => {
 
     const refreshPath = async () => {
         // @ts-ignore
-        invoke('pwd').then(p => setPath(p)).catch(e => console.log(e));
+        invoke('pwd').then(p => setPath(p)).catch(_ => setConnectionAlive(false));
     }
 
     const refreshDentries = async () => {
@@ -67,8 +69,7 @@ export const Explorer = ({disabled, }: Props) => {
     }, [path]);
 
     const enterDirectory = async (fileName: string) => {
-        await invoke('cwd', { fileName });
-        refreshPath();
+        invoke('cwd', { fileName }).then(refreshPath).catch(refreshDentries);
     }
 
     const mkdir = async () => {
@@ -90,13 +91,16 @@ export const Explorer = ({disabled, }: Props) => {
             }]
         });
 
-        let r = await invoke('get', {fileName});
+        try {
+            let r = await invoke('get', {fileName});
 
-        if (filePath != null) {
-            // @ts-ignore
-            await writeBinaryFile(filePath, new Uint8Array((r)));
+            if (filePath != null) {
+                // @ts-ignore
+                await writeBinaryFile(filePath, new Uint8Array((r)));
+            }
+        } catch (e) {
+            onError();
         }
-
     }
 
     const uploadFile = async () => {
@@ -112,9 +116,10 @@ export const Explorer = ({disabled, }: Props) => {
         // const bytes = await readBinaryFile(filePath);
         // console.log("uploadFile() bytes:", bytes);
 
-        await invoke('put', { path: filePath })
+        if(filePath) {
+            invoke('put', { path: filePath }).then(refreshDentries).catch(onError);
+        }
 
-        refreshDentries();
     }
 
     // @ts-ignore

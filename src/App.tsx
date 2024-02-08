@@ -5,7 +5,7 @@ import {Message} from "./types/Message.ts";
 import {invoke} from "@tauri-apps/api";
 import {Options} from "./types/Options.ts";
 import {LogSocketConnection} from "./components/RustySocket.tsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 export default function App() {
 
@@ -15,10 +15,16 @@ export default function App() {
     const handleLogSocketMessage = (message: Message) => {
         message.datetime = new Date(message.datetime);
         // This is where you do the actions - im just writing the message to a state variable
-        setMessages(old => [...old, message]);
+        setMessages(old => [message, ...old]);
     };
 
     LogSocketConnection(handleLogSocketMessage);
+
+    useEffect(() => {
+        const alive = localStorage.getItem('connection-alive');
+        setConnectionAlive(alive != null);
+    }, []);
+
 
     // useEffect(() => {
     //     const ping = async () => {
@@ -28,24 +34,35 @@ export default function App() {
     //     ping();
     // }, [messages])
 
+
+    function connect() {
+        setConnectionAlive(true);
+        localStorage.setItem('connection-alive', String(true));
+    }
+
+    function disconnect() {
+        setConnectionAlive(false);
+        localStorage.removeItem('connection-alive');
+        localStorage.removeItem('credentials');
+    }
+
     async function handleConnect(options: Options) {
-        console.log("connect to ", options);
         // @ts-ignore
-        await invoke("connect", options)
-            .then(() => setConnectionAlive(true))
-            .catch(e => console.error(e));
+        invoke("connect", options)
+            .then(connect)
+            .catch(disconnect);
     }
 
     async function handleDisconnect() {
-        invoke("disconnect").then(() => setConnectionAlive(false));
+        invoke("disconnect").finally(disconnect)
     }
 
     return (
         <>
             <div className="container mx-auto relative">
                 <h1 className="absolute font-extrabold text-3xl ">rE FTP</h1>
-                <ConnectionForm connectionAlive={connectionAlive} onConnect={handleConnect} onDisconnect={handleDisconnect} />
-                <Explorer disabled={!connectionAlive} />
+                <ConnectionForm connectionAlive={connectionAlive} connect={handleConnect} disconnect={handleDisconnect} />
+                <Explorer disabled={!connectionAlive} onError={disconnect} />
                 <LogWindow messages={messages} clearCallback={() => setMessages([])}/>
             </div>
         </>

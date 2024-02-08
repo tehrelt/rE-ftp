@@ -89,7 +89,12 @@ pub fn cwd(file_name: &str) -> Result<(), FtpError> {
     let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
     let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-    let _ = ftp.cwd(file_name).expect("Unexpected error while executing cwd");
+    let cwd_r = ftp.cwd(file_name);
+
+    if cwd_r.is_err() {
+        drop(ftp_mutex);
+        return cwd_r;
+    }
 
     drop(ftp_mutex);
 

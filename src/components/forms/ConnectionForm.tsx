@@ -1,31 +1,45 @@
 import {InputBox} from "./InputBox.tsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {Options} from "../../types/Options.ts";
 
 type Props = {
     connectionAlive: boolean
-    onConnect: (options: Options) => void
-    onDisconnect: () => void
+    connect: (options: Options) => void
+    disconnect: () => void
 };
-export const ConnectionForm = ({ connectionAlive, onConnect, onDisconnect }: Props) => {
+export const ConnectionForm = ({ connectionAlive, connect, disconnect }: Props) => {
 
     const [host, setHost] = useState<string>("")
-    const [username, setUsername] = useState<string>("")
-    const [password, setPassword] = useState<string>("")
+    const [user, setUser] = useState<string>("")
+    const [pass, setPass] = useState<string>("")
     const [port, setPort] = useState<number>(21)
+
+    useEffect(() => {
+        const cn = localStorage.getItem('credentials');
+
+        if (cn) {
+           const splitted = cn.split(';');
+
+           setHost(splitted[0]);
+           setUser(splitted[1]);
+           setPass(splitted[2]);
+
+           // @ts-ignore
+            setPort(splitted[3]);
+        }
+
+    }, []);
 
     const handleSubmit = (e: any) => {
         e.preventDefault();
         if (connectionAlive) {
-            onDisconnect()
-        } else {
-            onConnect({
-                host,
-                user: username,
-                pass: password,
-                port
-            });
+            disconnect();
+            return;
         }
+
+        connect({ host, user, pass, port } );
+
+        localStorage.setItem('credentials', `${host};${user};${pass};${port}`);
     }
 
     return (
@@ -38,10 +52,10 @@ export const ConnectionForm = ({ connectionAlive, onConnect, onDisconnect }: Pro
                     value={host} callback={(val) => setHost(val.toString())}/>
 
                 <InputBox label="Username" id="user" disabled={connectionAlive}
-                          value={username} callback={(val) => setUsername(val.toString())} />
+                          value={user} callback={(val) => setUser(val.toString())} />
 
                 <InputBox label="Password" id="password" type="password" disabled={connectionAlive}
-                          value={password} callback={(val) => setPassword(val.toString())}/>
+                          value={pass} callback={(val) => setPass(val.toString())}/>
 
                 <InputBox label="Port" id="port" type="number" max={65535} disabled={connectionAlive}
                           value={port} callback={(val) => setPort(Number(val))}/>
