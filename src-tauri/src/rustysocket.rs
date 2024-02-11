@@ -25,3 +25,7 @@ fn send_log_message(window: &Window, log: &LogMessage) {
 pub fn new_log_message(window: &Window, msg: String) {
     send_log_message(window, &create_log_message(&msg))
 }
+
+pub fn send_progress_message(window: &Window, progress: i32) {
+    window.emit("progress-socket-message", progress).unwrap()
+}

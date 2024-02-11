@@ -116,13 +116,28 @@ pub fn mkdir(file_name: &str) -> Result<(), FtpError> {
 
     Ok(())
 }
-pub fn get(file_name: &str) -> Result<Vec<u8>, FtpError> {
+pub fn get(file_name: &str, on_progress: impl Fn(i32)) -> Result<Vec<u8>, FtpError> {
     check_connection()?;
 
     let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
     let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
 
-    let bytes = ftp.simple_retr(file_name).unwrap().into_inner();
+    let path = ftp.pwd().unwrap();
+    let size = ftp.size(&format!("{}/{}", path, file_name)).unwrap().unwrap();
+    let bytes = ftp.retr(file_name, |stream| {
+        let mut bytes: Vec<u8> = vec![];
+        let mut buf = [0; 256];
+        let mut downloaded = 0;
+
+        while downloaded < size {
+            let _ = stream.read_exact(&mut buf);
+            bytes.extend(buf.iter());
+            downloaded += 256;
+            on_progress(((downloaded / size) * 100).try_into().unwrap())
+        }
+
+        Ok(bytes)
+    })?;
 
     drop(ftp_mutex);
 

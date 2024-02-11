@@ -8,7 +8,7 @@ mod rustysocket;
 mod mftp;
 
 use mftp::check_connection;
-use rustysocket::new_log_message;
+use rustysocket::{new_log_message, send_progress_message};
 use tauri::Window;
 use std::{fs, str};
 
@@ -143,8 +143,10 @@ fn mkdir(window: Window, dir_name: &str) -> Result<String, String> {
 
 #[tauri::command]
 fn get(window: Window, file_name: &str) -> Result<Vec<u8>, String>{
-    println!("get");
-    let r = mftp::get(file_name);
+
+    let r = mftp::get(file_name, |p: i32| {
+        send_progress_message(&window, p)
+    });
 
     return match r {
         Ok(v) => {

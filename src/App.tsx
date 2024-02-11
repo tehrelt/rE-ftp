@@ -6,6 +6,53 @@ import {invoke} from "@tauri-apps/api";
 import {Options} from "./types/Options.ts";
 import {LogSocketConnection} from "./components/RustySocket.tsx";
 import {useEffect, useState} from "react";
+import {Bounce, toast, ToastContainer} from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+import {ProgressBar} from "./components/ProgressBar.tsx";
+
+
+export function notifyInfo(msg: string) {
+    toast.info(msg, {
+        position: "bottom-left",
+        autoClose: 1000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        transition: Bounce,
+    });
+}
+
+
+export function notifySuccess(msg: string) {
+    toast.success(msg, {
+        position: "bottom-left",
+        autoClose: 1000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        transition: Bounce,
+    });
+}
+
+export function notifyError(msg: string) {
+    toast.error(msg, {
+        position: "bottom-left",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored",
+        transition: Bounce,
+    });
+}
 
 export default function App() {
 
@@ -18,6 +65,7 @@ export default function App() {
         setMessages(old => [message, ...old]);
     };
 
+
     LogSocketConnection(handleLogSocketMessage);
 
     useEffect(() => {
@@ -25,46 +73,48 @@ export default function App() {
         setConnectionAlive(alive != null);
     }, []);
 
-
-    // useEffect(() => {
-    //     const ping = async () => {
-    //         invoke("ping").then(r => setConnectionAlive(r)).catch(e => console.error("ping", e));
-    //     }
-    //
-    //     ping();
-    // }, [messages])
-
-
-    function connect() {
+    function onConnection() {
         setConnectionAlive(true);
         localStorage.setItem('connection-alive', String(true));
+        notifySuccess("Connected");
     }
 
-    function disconnect() {
+    function handleError(message: string) {
+        notifyError(message);
+        onDisconnection();
+    }
+
+    function onDisconnection() {
         setConnectionAlive(false);
         localStorage.removeItem('connection-alive');
         localStorage.removeItem('credentials');
+
     }
 
     async function handleConnect(options: Options) {
         // @ts-ignore
         invoke("connect", options)
-            .then(connect)
-            .catch(disconnect);
+            .then(onConnection)
+            .catch(handleError);
     }
 
     async function handleDisconnect() {
-        invoke("disconnect").finally(disconnect)
+        invoke("disconnect")
+            .then(_ => notifySuccess("Disconnected"))
+            .catch(e => handleError(e))
+            .finally(onDisconnection)
     }
 
     return (
         <>
             <div className="container mx-auto relative">
                 <h1 className="absolute font-extrabold text-3xl ">rE FTP</h1>
-                <ConnectionForm connectionAlive={connectionAlive} connect={handleConnect} disconnect={handleDisconnect} />
-                <Explorer disabled={!connectionAlive} onError={disconnect} />
+                <ConnectionForm connectionAlive={connectionAlive} connect={(options: Options) => handleConnect(options) } disconnect={handleDisconnect} />
+                <Explorer disabled={!connectionAlive} onError={handleError} />
                 <LogWindow messages={messages} clearCallback={() => setMessages([])}/>
             </div>
+            <ToastContainer/>
+
         </>
     );
 }

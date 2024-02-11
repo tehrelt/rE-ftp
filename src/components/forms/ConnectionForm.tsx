@@ -24,8 +24,7 @@ export const ConnectionForm = ({ connectionAlive, connect, disconnect }: Props) 
            setUser(splitted[1]);
            setPass(splitted[2]);
 
-           // @ts-ignore
-            setPort(splitted[3]);
+           setPort(Number(splitted[3]));
         }
 
     }, []);

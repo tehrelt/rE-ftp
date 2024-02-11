@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api";
 import { open, save } from "@tauri-apps/api/dialog";
 import { BaseDirectory, writeBinaryFile } from "@tauri-apps/api/fs";
+import {notifyInfo, notifySuccess} from "../App.tsx";
+import {ProgressBar} from "./ProgressBar.tsx";
 
 type Props = {
   disabled?: boolean | true;
 
-  onError: () => void;
+  onError: (message: string) => void;
 };
 export const Explorer = ({ disabled, onError }: Props) => {
   if (disabled) {
@@ -24,9 +26,7 @@ export const Explorer = ({ disabled, onError }: Props) => {
 
   const refreshPath = async () => {
     // @ts-ignore
-    invoke("pwd")
-      .then((p) => setPath(p))
-      .catch(onError)
+    invoke("pwd").then((p: string) => setPath(p)).catch(e => onError(e.message))
   };
 
   const refreshDentries = async () => {
@@ -68,7 +68,8 @@ export const Explorer = ({ disabled, onError }: Props) => {
           })
       );
     } catch (e) {
-        onError();
+      // @ts-ignore
+      onError(e.message);
     }
   };
 
@@ -92,31 +93,38 @@ export const Explorer = ({ disabled, onError }: Props) => {
 
     const dirName = count == 0 ? "New Folder" : `New Folder (${count})`;
 
-    await invoke("mkdir", { dirName });
+    invoke("mkdir", { dirName }).then(_ => notifySuccess(`${dirName} successfully created`)).catch(e => onError(e.message));
     refreshDentries();
   };
 
   const downloadFile = async (fileName: string) => {
-    const filePath = await save({
-      defaultPath: BaseDirectory.Download + "/" + fileName,
-      filters: [
-        {
-          name: "Files",
-          extensions: ["*"],
-        },
-      ],
-    });
 
-    try {
-      let r = await invoke("get", { fileName });
+    notifyInfo(`${fileName} starts downloading`);
+    invoke("get", { fileName })
+        .then(r => {
+          const f = async () => {
+            const filePath = await save({
+              defaultPath: BaseDirectory.Download + "/" + fileName,
+              filters: [
+                {
+                  name: "Files",
+                  extensions: ["*"],
+                },
+              ],
+            });
 
-      if (filePath != null) {
-        // @ts-ignore
-        await writeBinaryFile(filePath, new Uint8Array(r));
-      }
-    } catch (e) {
-      onError();
-    }
+            if (filePath) {
+              // @ts-ignore
+              await writeBinaryFile(filePath, new Uint8Array(r))
+              notifySuccess(`${fileName} successfully saved`)
+            } else {
+              notifyInfo("File downloading cancelled");
+            }
+          }
+
+          f();
+        })
+        .catch(e => onError(e.message));
   };
 
   const uploadFile = async () => {
@@ -129,24 +137,39 @@ export const Explorer = ({ disabled, onError }: Props) => {
       ],
     });
 
-    console.log("uploadFile() filePath:", filePath);
-
-    // const bytes = await readBinaryFile(filePath);
-    // console.log("uploadFile() bytes:", bytes);
 
     if (filePath) {
-      invoke("put", { path: filePath }).then(refreshDentries).catch(onError);
+      invoke("put", { path: filePath }).then(refreshDentries).catch(e => onError(e.message));
+    } else {
+      notifyInfo("File path is null");
     }
   };
 
-  // @ts-ignore
   return (
-    <div
-      className={` w-full max-h-96 p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto ${
-        disabled ? "bg-slate-50" : "bg-slate-200"
-      }`}
-    >
+    <div className="w-full max-h-96 p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto bg-slate-200">
       <div className="relative mx-40">
+        <div className="grid grid-cols-10">
+          <ProgressBar className='col-span-8'/>
+          <div className='flex my-auto justify-end'>
+            <button
+                className="bg-slate-300 text-gray-900 px-3 py-1 rounded rounded-b hover:bg-slate-400 transition-all ease-in-out"
+                onClick={mkdir}
+            >
+              Make dir
+            </button>
+          </div>
+
+          <div className='my-auto'>
+            <button
+                className="bg-slate-300 text-gray-900 px-3 py-1 rounded rounded-b hover:bg-slate-400 transition-all ease-in-out ml-4"
+                onClick={uploadFile}
+            >
+              Upload file
+            </button>
+          </div>
+
+        </div>
+
         <h2>
           {path.split("*/").map((p: string) => (
             <span key={"p"}>{p}</span>
@@ -169,20 +192,7 @@ export const Explorer = ({ disabled, onError }: Props) => {
             />
           ))}
         </div>
-        <div id="button_mkdir" className="absolute top-0 right-2">
-          <button
-            className="bg-slate-300 text-gray-900 px-3 py-1 rounded rounded-b hover:bg-slate-400 transition-all ease-in-out"
-            onClick={mkdir}
-          >
-            Make dir
-          </button>
-          <button
-            className="bg-slate-300 text-gray-900 px-3 py-1 rounded rounded-b hover:bg-slate-400 transition-all ease-in-out ml-4"
-            onClick={uploadFile}
-          >
-            Upload file
-          </button>
-        </div>
+
       </div>
     </div>
   );
