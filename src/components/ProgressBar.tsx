@@ -5,13 +5,11 @@ export const ProgressBar = (props) => {
 
     const [progress, setProgress] = useState<number>(0);
 
-    const handleSocket = (p: number) => {
+    const handleSocket =  (p: number) => {
         setProgress(p);
     }
 
     ProgressSocketConnection(handleSocket);
-
-
 
     return (
         // @ts-ignore

@@ -11,7 +11,7 @@ pub fn connect(host: &str, user: &str, password: &str, port: i32) -> Result<(), 
     let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
 
     if ftp_mutex.is_some() {
-        let _ = check_connection().expect_err("Connection alive");
+        disconnect()?;
     }
 
     let mut ftp = FtpStream::connect(format!("{}:{}", host, port))?;
@@ -27,7 +27,7 @@ pub fn disconnect() -> Result<(), FtpError> {
     check_connection()?;
 
     let mut ftp_mutex = FTP.lock().expect("Failed to lock FTP mutex");
-    let ftp = ftp_mutex.as_mut().expect("FTP stream not initialized");
+    let ftp = ftp_mutex.as_mut().expect("disconnect: FTP stream not initialized");
 
     let _ = ftp.quit().expect("Unexpected error while executing disconnect");
 

@@ -24,12 +24,25 @@ export const Explorer = ({ disabled, onError }: Props) => {
   const [path, setPath] = useState<string>("/");
   const [dentries, setDentries] = useState<DEntry[]>([]);
 
+  const handleError = (e: Error) => {
+    onError(e.message)
+    setPath('/');
+  }
+
   const refreshPath = async () => {
-    // @ts-ignore
-    invoke("pwd").then((p: string) => setPath(p)).catch(e => onError(e.message))
+
+    try {
+      console.log("REFRESH PATH");
+      let p: string = await invoke("pwd");
+      setPath(p);
+      // @ts-ignore
+    } catch (e) {
+      handleError(e)
+    }
   };
 
   const refreshDentries = async () => {
+    console.log("REFRESH DENTRIES");
     try {
       const entries: string[] = await invoke("list");
 
@@ -69,7 +82,7 @@ export const Explorer = ({ disabled, onError }: Props) => {
       );
     } catch (e) {
       // @ts-ignore
-      onError(e.message);
+      handleError(e);
     }
   };
 
@@ -93,7 +106,7 @@ export const Explorer = ({ disabled, onError }: Props) => {
 
     const dirName = count == 0 ? "New Folder" : `New Folder (${count})`;
 
-    invoke("mkdir", { dirName }).then(_ => notifySuccess(`${dirName} successfully created`)).catch(e => onError(e.message));
+    invoke("mkdir", { dirName }).then(_ => notifySuccess(`${dirName} successfully created`)).catch(handleError);
     refreshDentries();
   };
 
@@ -115,8 +128,7 @@ export const Explorer = ({ disabled, onError }: Props) => {
 
             if (filePath) {
               // @ts-ignore
-              await writeBinaryFile(filePath, new Uint8Array(r))
-              notifySuccess(`${fileName} successfully saved`)
+              writeBinaryFile(filePath, new Uint8Array(r)).then(_ => notifySuccess(`${fileName} successfully saved`));
             } else {
               notifyInfo("File downloading cancelled");
             }
@@ -124,7 +136,7 @@ export const Explorer = ({ disabled, onError }: Props) => {
 
           f();
         })
-        .catch(e => onError(e.message));
+        .catch(handleError);
   };
 
   const uploadFile = async () => {
@@ -139,7 +151,7 @@ export const Explorer = ({ disabled, onError }: Props) => {
 
 
     if (filePath) {
-      invoke("put", { path: filePath }).then(refreshDentries).catch(e => onError(e.message));
+      invoke("put", { path: filePath }).then(refreshDentries).catch(handleError);
     } else {
       notifyInfo("File path is null");
     }
@@ -148,8 +160,8 @@ export const Explorer = ({ disabled, onError }: Props) => {
   return (
     <div className="w-full max-h-96 p-6 rounded rounded-2xl shadow-2xl border-sky-800 mt-10 overflow-y-auto bg-slate-200">
       <div className="relative mx-40">
-        <div className="grid grid-cols-10">
-          <ProgressBar className='col-span-8'/>
+        <div className="grid grid-cols-9">
+          <ProgressBar className='col-span-7'/>
           <div className='flex my-auto justify-end'>
             <button
                 className="bg-slate-300 text-gray-900 px-3 py-1 rounded rounded-b hover:bg-slate-400 transition-all ease-in-out"

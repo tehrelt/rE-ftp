@@ -81,13 +81,14 @@ export default function App() {
 
     function handleError(message: string) {
         notifyError(message);
-        onDisconnection();
+        handleDisconnect();
     }
 
     function onDisconnection() {
         setConnectionAlive(false);
         localStorage.removeItem('connection-alive');
         localStorage.removeItem('credentials');
+        notifySuccess("Disconnected")
 
     }
 
@@ -99,10 +100,7 @@ export default function App() {
     }
 
     async function handleDisconnect() {
-        invoke("disconnect")
-            .then(_ => notifySuccess("Disconnected"))
-            .catch(e => handleError(e))
-            .finally(onDisconnection)
+        invoke("disconnect").finally(onDisconnection)
     }
 
     return (
