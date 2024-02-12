@@ -1,6 +1,7 @@
 import {useState} from "react";
 import {ProgressSocketConnection} from "./RustySocket.tsx";
 
+// @ts-ignore
 export const ProgressBar = (props) => {
 
     const [progress, setProgress] = useState<number>(0);

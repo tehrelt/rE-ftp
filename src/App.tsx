@@ -8,7 +8,6 @@ import {LogSocketConnection} from "./components/RustySocket.tsx";
 import {useEffect, useState} from "react";
 import {Bounce, toast, ToastContainer} from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import {ProgressBar} from "./components/ProgressBar.tsx";
 
 
 export function notifyInfo(msg: string) {

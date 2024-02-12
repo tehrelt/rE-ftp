@@ -35,8 +35,9 @@ export const Explorer = ({ disabled, onError }: Props) => {
       console.log("REFRESH PATH");
       let p: string = await invoke("pwd");
       setPath(p);
-      // @ts-ignore
+
     } catch (e) {
+      // @ts-ignore
       handleError(e)
     }
   };
